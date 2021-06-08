@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 import { Response } from './types'
 
 interface BreedsResponse extends Response {
-  body: string
+  body: string[]
 }
 
 interface ErrorResponse extends Response {
@@ -10,7 +10,7 @@ interface ErrorResponse extends Response {
 }
 
 interface SubBreed {
-  [key: string]: string
+  [key: string]: string[]
 }
 
 interface Breeds {
@@ -18,37 +18,36 @@ interface Breeds {
   status: string
 }
 
-async function getBreedNames(payload: Breeds): Promise<string> {
+async function getBreedNames(message: SubBreed): Promise<string[]> {
   const breeds = []
-  const json = JSON.parse(payload.toString())
-  const keys = Object.keys(json.message)
+  const keys = Object.keys(message)
   for (let i = 0; i < keys.length; i += 1) {
     const breed = keys[i]
-    const subBreeds = json.message[breed]
+    const subBreeds = message[breed]
     if (subBreeds.length > 0) {
       for (let j = 0; j < subBreeds.length; j += 1) {
         const subBreed = subBreeds[j]
-        breeds.push(subBreed)
+        breeds.push(`${subBreed} ${breed}`)
       }
     } else {
       breeds.push(breed)
     }
   }
-  return JSON.stringify(breeds)
+  return breeds
 }
 
-export async function handler(timeout = 5000): Promise<BreedsResponse | ErrorResponse> {
+export async function handler(): Promise<BreedsResponse | ErrorResponse> {
   try {
-    const res = await fetch('https://dog.ceo/api/breeds/list/all', { timeout })
+    const res = await fetch('https://dog.ceo/api/breeds/list/all')
     const payload: Breeds = await res.json()
     return {
       statusCode: 200,
-      body: await getBreedNames(payload),
+      body: await getBreedNames(payload.message),
     }
   } catch (err: any) {
     return {
       statusCode: 500,
-      message: err,
+      message: err.toString(),
     }
   }
 }
