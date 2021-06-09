@@ -1,4 +1,4 @@
-import fetch, { Response } from 'node-fetch'
+import fetch from 'node-fetch'
 import { StatusResponse } from './types'
 
 interface BreedsResponse extends StatusResponse {
@@ -16,6 +16,9 @@ interface SubBreed {
 interface Breeds {
   message: SubBreed
   status: string
+}
+
+class RequestTimeoutLimitError extends Error {
 }
 
 async function getBreedNames(message: SubBreed): Promise<string[]> {
@@ -39,41 +42,38 @@ async function getBreedNames(message: SubBreed): Promise<string[]> {
 export async function handler(): Promise<BreedsResponse | ErrorResponse> {
   try {
     const timeoutMs = 30 * 1000
-    const res = new Promise<Response>((resolve) => {
-      resolve(fetch('https://dog.ceo/api/breeds/list/all'))
-    })
+    const res = await fetch('https://dog.ceo/api/breeds/list/all')
 
-    const timeout = new Promise<Response>(() => {
-      setTimeout(() => {
-        throw new Error('Request Timeout Limit')
-      }, timeoutMs)
-    })
+    const timeout = setTimeout(() => {
+      throw new RequestTimeoutLimitError('Request Timeout Limit')
+    }, timeoutMs)
 
-    return Promise.race([res, timeout])
-      .then(async (value) => {
-        if (value.status !== 200) {
-          return {
-            statusCode: value.status,
-            message: value.statusText,
-          }
-        }
+    if (res.status !== 200) {
+      return {
+        statusCode: res.status,
+        message: 'API Call Failure',
+      }
+    }
 
-        const payload: Breeds = await value.json()
-        return {
-          statusCode: 200,
-          body: await getBreedNames(payload.message),
-        }
-      })
-      .catch((reason) => {
-        return {
-          statusCode: 408,
-          message: reason.toString(),
-        }
-      })
+    const payload: Breeds = await res.json()
+    clearTimeout(timeout)
+
+    return {
+      statusCode: 200,
+      body: await getBreedNames(payload.message),
+    }
   } catch (err: any) {
+    if (err instanceof RequestTimeoutLimitError)
+    {
+      let timeoutError = err;
+      return {
+        statusCode: 408,
+        message: timeoutError.message,
+      }
+    }
     return {
       statusCode: 500,
-      message: err.toString(),
+      message: 'API Server Error',
     }
   }
 }

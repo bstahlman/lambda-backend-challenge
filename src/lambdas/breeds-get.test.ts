@@ -46,14 +46,12 @@ describe('breeds-get handler', () => {
     const response = await handler()
     const expectedResponse = {
       statusCode: 500,
-      message: 'Internal Server Error',
+      message: 'API Call Failure',
     }
     expect(response).toMatchObject(expectedResponse)
   })
 
   it('returns 408 status code if the request times out', async () => {
-    jest.useFakeTimers()
-    jest.advanceTimersByTime(500000)
     mockedFetch.mockReturnValueOnce({
       ok: false,
       status: 408,
@@ -65,7 +63,7 @@ describe('breeds-get handler', () => {
     const response = await handler()
     const expectedResponse = {
       statusCode: 408,
-      message: 'Request Timeout',
+      message: 'API Call Failure',
     }
     expect(response).toMatchObject(expectedResponse)
   })
