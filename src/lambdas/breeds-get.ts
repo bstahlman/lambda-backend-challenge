@@ -38,7 +38,20 @@ async function getBreedNames(message: SubBreed): Promise<string[]> {
 
 export async function handler(): Promise<BreedsResponse | ErrorResponse> {
   try {
+    const timeoutMs = 30 * 1000
+    const timeout = setTimeout(() => {
+      throw new Error('Request Timeout Limit')
+    }, timeoutMs)
+
     const res = await fetch('https://dog.ceo/api/breeds/list/all')
+    clearTimeout(timeout)
+
+    if (!res.ok) {
+      return {
+        statusCode: res.status,
+        message: res.statusText,
+      }
+    }
     const payload: Breeds = await res.json()
     return {
       statusCode: 200,

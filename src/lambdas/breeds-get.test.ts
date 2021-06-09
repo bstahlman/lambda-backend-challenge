@@ -11,6 +11,7 @@ describe('breeds-get handler', () => {
 
   it('returns 200 status code and flat array of breeds if the request is valid', async () => {
     mockedFetch.mockReturnValueOnce({
+      ok: true,
       json: () => {
         return {
           message: {
@@ -31,6 +32,9 @@ describe('breeds-get handler', () => {
 
   it('returns 500 status code if the request is invalid', async () => {
     mockedFetch.mockReturnValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
       json: () => {
         return null
       },
@@ -38,13 +42,18 @@ describe('breeds-get handler', () => {
     const response = await handler()
     const expectedResponse = {
       statusCode: 500,
-      message: "TypeError: Cannot read property 'message' of null",
+      message: 'Internal Server Error',
     }
     expect(response).toMatchObject(expectedResponse)
   })
 
   it('returns 408 status code if the request times out', async () => {
+    jest.useFakeTimers()
+    jest.advanceTimersByTime(500000)
     mockedFetch.mockReturnValueOnce({
+      ok: false,
+      status: 408,
+      statusText: 'Request Timeout',
       json: () => {
         return null
       },
@@ -52,7 +61,7 @@ describe('breeds-get handler', () => {
     const response = await handler()
     const expectedResponse = {
       statusCode: 408,
-      body: 'Request Timeout',
+      message: 'Request Timeout',
     }
     expect(response).toMatchObject(expectedResponse)
   })
