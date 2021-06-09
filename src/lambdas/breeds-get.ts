@@ -1,11 +1,11 @@
-import fetch from 'node-fetch'
-import { Response } from './types'
+import fetch, { Response } from 'node-fetch'
+import { StatusResponse } from './types'
 
-interface BreedsResponse extends Response {
+interface BreedsResponse extends StatusResponse {
   body: string[]
 }
 
-interface ErrorResponse extends Response {
+interface ErrorResponse extends StatusResponse {
   message: string
 }
 
@@ -39,24 +39,37 @@ async function getBreedNames(message: SubBreed): Promise<string[]> {
 export async function handler(): Promise<BreedsResponse | ErrorResponse> {
   try {
     const timeoutMs = 30 * 1000
-    const timeout = setTimeout(() => {
-      throw new Error('Request Timeout Limit')
-    }, timeoutMs)
+    const res = new Promise<Response>((resolve) => {
+      resolve(fetch('https://dog.ceo/api/breeds/list/all'))
+    })
 
-    const res = await fetch('https://dog.ceo/api/breeds/list/all')
-    clearTimeout(timeout)
+    const timeout = new Promise<Response>(() => {
+      setTimeout(() => {
+        throw new Error('Request Timeout Limit')
+      }, timeoutMs)
+    })
 
-    if (!res.ok) {
-      return {
-        statusCode: res.status,
-        message: res.statusText,
-      }
-    }
-    const payload: Breeds = await res.json()
-    return {
-      statusCode: 200,
-      body: await getBreedNames(payload.message),
-    }
+    return Promise.race([res, timeout])
+      .then(async (value) => {
+        if (value.status !== 200) {
+          return {
+            statusCode: value.status,
+            message: value.statusText,
+          }
+        }
+
+        const payload: Breeds = await value.json()
+        return {
+          statusCode: 200,
+          body: await getBreedNames(payload.message),
+        }
+      })
+      .catch((reason) => {
+        return {
+          statusCode: 408,
+          message: reason.toString(),
+        }
+      })
   } catch (err: any) {
     return {
       statusCode: 500,

@@ -8,10 +8,14 @@ describe('breeds-get handler', () => {
   beforeEach(() => {
     jest.resetAllMocks()
   })
+  afterEach(() => {
+    jest.useRealTimers()
+  })
 
   it('returns 200 status code and flat array of breeds if the request is valid', async () => {
     mockedFetch.mockReturnValueOnce({
       ok: true,
+      status: 200,
       json: () => {
         return {
           message: {
