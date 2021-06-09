@@ -18,8 +18,7 @@ interface Breeds {
   status: string
 }
 
-class RequestTimeoutLimitError extends Error {
-}
+class RequestTimeoutLimitError extends Error {}
 
 async function getBreedNames(message: SubBreed): Promise<string[]> {
   const breeds = []
@@ -63,9 +62,8 @@ export async function handler(): Promise<BreedsResponse | ErrorResponse> {
       body: await getBreedNames(payload.message),
     }
   } catch (err: any) {
-    if (err instanceof RequestTimeoutLimitError)
-    {
-      let timeoutError = err;
+    if (err instanceof RequestTimeoutLimitError) {
+      const timeoutError = err
       return {
         statusCode: 408,
         message: timeoutError.message,
